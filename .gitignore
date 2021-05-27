@@ -1,0 +1,4 @@
+build/*
+*shader.h
+*.swp
+*.rdbg

@@ -6,10 +6,10 @@ set smol=no
 
 IF "%smol%" EQU "yes" (
     set compile_flags=/GS- /Gs9999999 /Gm- /EHa- /GF /Gy /GA /GR- /O1 /Os /Fe:app.exe
-    set link_flags=/subsystem:windows /OPT:REF /OPT:ICF /STACK:0x100000,0x100000
+    set link_flags=/subsystem:windows /opt:ref /opt:icf /stack:0x100000,0x100000
 ) ELSE (
     set compile_flags=-nologo /Zi /FC /TC /I "../"
-    set link_flags=-opt:ref -incremental:no /Debug:fastlink
+    set link_flags=/subsystem:windows /opt:ref /incremental:no
 )
 
 IF "%_called_vcvars_%" EQU "" (
@@ -19,8 +19,8 @@ IF "%_called_vcvars_%" EQU "" (
     popd
 )
 
-:: fxc.exe /nologo /T vs_4_0 /E vs /O3 /WX /Zpc /Ges /Fh d3d11_vshader.h /Vn d3d11_vshader /Qstrip_reflect /Qstrip_debug /Qstrip_priv shader.hlsl
-:: fxc.exe /nologo /T ps_4_0 /E ps /O3 /WX /Zpc /Ges /Fh d3d11_pshader.h /Vn d3d11_pshader /Qstrip_reflect /Qstrip_debug /Qstrip_priv shader.hlsl
+fxc.exe /nologo /T vs_4_0 /E vs /O3 /WX /Zpc /Ges /Fh d3d11_vshader.h /Vn d3d11_vshader /Qstrip_reflect /Qstrip_debug /Qstrip_priv shader.hlsl
+fxc.exe /nologo /T ps_4_0 /E ps /O3 /WX /Zpc /Ges /Fh d3d11_pshader.h /Vn d3d11_pshader /Qstrip_reflect /Qstrip_debug /Qstrip_priv shader.hlsl
 
 if not exist build mkdir build
 pushd build
