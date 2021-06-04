@@ -54,7 +54,7 @@ This analysis begs the question: is it worth it? Assume you have a 16x16x16 chun
 
 So my "optimization" makes islands take up 2.3x times more memory, why bother? Because the blocks don't need to be doubly linked, and they don't necessarily neeed to store their position. The code to manage that becomes more obtuse than I'm willing to reckon with for a game jam, but you could potentially bring the cost per block to 56 bytes just by only storing three neighbors and the kind of block, bringing the total cost to 28672 blocks, 87% of the size of the dense chunks way.
 
-87% is an improvement, but it assumes mostly hollow sky islands, and storing the indexes of your neighbors in a `uint16_t` means an individual island can only have 65,536 blocks (2^16). Why bother, why not just do things the dense chunks minecraft way? Because this makes it possible to do things you can't do in minecraft: have several voxel islands that don't occupy the same grid, and spin independently. Or maybe it is possible to do that with proper chunks; I'l have to investigate more
+87% is an improvement, but it assumes mostly hollow sky islands, and storing the indexes of your neighbors in a `uint16_t` means an individual island can only have 65,536 blocks (2^16). Why bother, why not just do things the dense chunks minecraft way? Because this makes it possible to do things you can't do in minecraft: have several voxel islands that don't occupy the same grid, and spin independently. Or maybe it is possible to do that with proper chunks; I'll have to investigate more, but another thing to consider is that even with chunks, we may want to keep this linked list code for maintaining the relationship between individual chunks, which is more complicated than in minecraft because we don't want our chunks to be 2D very very deep, we would prefer proper 3D chunks..
 
 ### math.h
 Contains two and three dimensional vector, and four dimensional matrix abstractions.
@@ -68,7 +68,7 @@ Some basic win32 error handling constructs. None of them do anything if `USE_DEB
 ### controller.h
 Contains all of the controller-specific handling code. DirectInput is used. This works all major controllers, XBox, PS4, PS5, etc. but you miss out on stuff like being able to rumble the controller, and you can't tell the difference between the left and right triggers being held and neither being held with an XBox controller. The code that maps the controller actions to the gameplay is in `main.c`.
 
-None of this code is compiled into the executable if `CONTROLLER_SUPPORT` (top of `main.c`) is `1`.
+None of this code is compiled into the executable if `CONTROLLER_SUPPORT` (top of `main.c`) is `0`.
 
 ### mem.h
 The code doesn't rely on the C runtime, instead using a trimmed down version to keep the executable size low -- typically Windows adds about 90kb of CRT initialization I just don't want -- so this file implements a couple of functions that are typically in the CRT by hand.
