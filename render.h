@@ -1,5 +1,11 @@
+#define SAFE_RELEASE(release, obj) if (obj) release##_Release(obj)
+
+// set to 0 to create resizable window
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
+
 // do you need depth buffer?
-#define WINDOW_DEPTH 0
+#define WINDOW_DEPTH 1
 
 // do you need stencil buffer?
 #define WINDOW_STENCIL 0
@@ -10,33 +16,66 @@
 // when enabled, D3D11 cannot use more modern lower-latency flip swap effect on Windows 8.1/10
 // instead you can use sRGB/MSAA render target and copy it to non-sRGB window
 #define WINDOW_SRGB 0
-#define WINDOW_MSAA 8
+#define WINDOW_MSAA 0
 
 // do you need vsync?
 #define WINDOW_VSYNC 1
 
-#include "d3d11_vshader.h"
-#include "d3d11_pshader.h"
-
-#define SAFE_RELEASE(release, obj) if (obj) release##_Release(obj)
-
-#define LOG_AND_RETURN_ERROR(hr, msg) do { \
-    if (FAILED(hr)) {                      \
-        log_win32_err(hr, msg);            \
-        return hr;                         \
-    }                                      \
-} while (0)
 
 typedef struct {
-    Vec2 pos;
-    Byte4 rgba;
-    uint16_t size[2];
-    uint8_t radius;
+    Vec3 pos;
+    Vec3 norm;
+    // uint8_t r, g, b, a;
 } Vertex;
 
-#define VERT_BUF_COUNT (MAX_ENTS * 4)
-#define VERT_BUF_SIZE  (VERT_BUF_COUNT * sizeof(Vertex))
-#define INDEX_BUF_SIZE (MAX_ENTS * 6 * sizeof(uint32_t))
+static Vertex cube_vertices[] = {
+    {{0.0f, 1.0f, 0.0f}, 0.0f, 0.0f,-1.0f},
+    {{1.0f, 1.0f, 0.0f}, 0.0f, 0.0f,-1.0f},
+    {{0.0f, 0.0f, 0.0f}, 0.0f, 0.0f,-1.0f},
+    {{0.0f, 0.0f, 0.0f}, 0.0f, 0.0f,-1.0f},
+    {{1.0f, 1.0f, 0.0f}, 0.0f, 0.0f,-1.0f},
+    {{1.0f, 0.0f, 0.0f}, 0.0f, 0.0f,-1.0f},
+    {{1.0f, 1.0f, 0.0f}, 1.0f, 0.0f, 0.0f},
+    {{1.0f, 1.0f, 1.0f}, 1.0f, 0.0f, 0.0f},
+    {{1.0f, 0.0f, 0.0f}, 1.0f, 0.0f, 0.0f},
+    {{1.0f, 0.0f, 0.0f}, 1.0f, 0.0f, 0.0f},
+    {{1.0f, 1.0f, 1.0f}, 1.0f, 0.0f, 0.0f},
+    {{1.0f, 0.0f, 1.0f}, 1.0f, 0.0f, 0.0f},
+    {{1.0f, 1.0f, 1.0f}, 0.0f, 0.0f, 1.0f},
+    {{0.0f, 1.0f, 1.0f}, 0.0f, 0.0f, 1.0f},
+    {{1.0f, 0.0f, 1.0f}, 0.0f, 0.0f, 1.0f},
+    {{1.0f, 0.0f, 1.0f}, 0.0f, 0.0f, 1.0f},
+    {{0.0f, 1.0f, 1.0f}, 0.0f, 0.0f, 1.0f},
+    {{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f, 1.0f},
+    {{0.0f, 1.0f, 1.0f},-1.0f, 0.0f, 0.0f},
+    {{0.0f, 1.0f, 0.0f},-1.0f, 0.0f, 0.0f},
+    {{0.0f, 0.0f, 1.0f},-1.0f, 0.0f, 0.0f},
+    {{0.0f, 0.0f, 1.0f},-1.0f, 0.0f, 0.0f},
+    {{0.0f, 1.0f, 0.0f},-1.0f, 0.0f, 0.0f},
+    {{0.0f, 0.0f, 0.0f},-1.0f, 0.0f, 0.0f},
+    {{0.0f, 1.0f, 1.0f}, 0.0f, 1.0f, 0.0f},
+    {{1.0f, 1.0f, 1.0f}, 0.0f, 1.0f, 0.0f},
+    {{0.0f, 1.0f, 0.0f}, 0.0f, 1.0f, 0.0f},
+    {{0.0f, 1.0f, 0.0f}, 0.0f, 1.0f, 0.0f},
+    {{1.0f, 1.0f, 1.0f}, 0.0f, 1.0f, 0.0f},
+    {{1.0f, 1.0f, 0.0f}, 0.0f, 1.0f, 0.0f},
+    {{0.0f, 0.0f, 0.0f}, 0.0f,-1.0f, 0.0f},
+    {{1.0f, 0.0f, 0.0f}, 0.0f,-1.0f, 0.0f},
+    {{0.0f, 0.0f, 1.0f}, 0.0f,-1.0f, 0.0f},
+    {{0.0f, 0.0f, 1.0f}, 0.0f,-1.0f, 0.0f},
+    {{1.0f, 0.0f, 0.0f}, 0.0f,-1.0f, 0.0f},
+    {{1.0f, 0.0f, 1.0f}, 0.0f,-1.0f, 0.0f},
+};
+
+#define VERT_BUF_SIZE  ((2 << 10) * sizeof(cube_vertices))
+#define INDEX_BUF_SIZE ((2 << 10) * _countof(cube_vertices) * sizeof(uint32_t))
+
+typedef struct {
+    Mat4 view_proj;
+} UniformBuffer;
+
+#include "./build/d3d11_vshader.h"
+#include "./build/d3d11_pshader.h"
 
 static struct {
     /* is window visible?
@@ -60,35 +99,8 @@ static struct {
     ID3D11InputLayout *input_layout;
     ID3D11Buffer *vertex_buffer;
     ID3D11Buffer *index_buffer;
+    ID3D11Buffer *uniform_buffer;
 } rcx;
-
-static void log_win32_err(DWORD err, const char *msg) {
-    #if USE_DEBUG_MODE
-    OutputDebugStringA(msg);
-    OutputDebugStringA("!\n");
-
-    LPWSTR str;
-    DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM;
-    DWORD lang = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
-    if (FormatMessageW(flags, NULL, err, lang, (LPWSTR)&str, 0, NULL)) {
-        OutputDebugStringW(str);
-        LocalFree(str);
-    }
-    #endif
-}
-static void log_win32_last_err(const char *msg) {
-    #if USE_DEBUG_MODE
-    log_win32_err(GetLastError(), msg);
-    #endif
-}
-
-static HRESULT fatal_device_lost_error() {
-    #if USE_DEBUG_MODE
-    wchar_t *msg = L"Cannot recreate D3D11 device, it is reset or removed!";
-    MessageBoxW(NULL, msg, L"Error", MB_ICONEXCLAMATION);
-    #endif
-    return E_FAIL;
-}
 
 // called when device & all d3d resources needs to be released
 // can happen multiple times (e.g. after device is removed/reset)
@@ -97,6 +109,7 @@ static void render_destroy() {
         ID3D11DeviceContext_ClearState(rcx.context);
     }
 
+    SAFE_RELEASE(ID3D11Buffer, rcx.uniform_buffer);
     SAFE_RELEASE(ID3D11Buffer, rcx.index_buffer);
     SAFE_RELEASE(ID3D11Buffer, rcx.vertex_buffer);
     SAFE_RELEASE(ID3D11InputLayout, rcx.input_layout);
@@ -323,36 +336,18 @@ static HRESULT render_create(HWND wnd) {
             {
                 "POSITION",
                 0,
-                DXGI_FORMAT_R32G32_FLOAT,
+                DXGI_FORMAT_R32G32B32_FLOAT,
                 0,
                 offsetof(Vertex, pos.x),
                 D3D11_INPUT_PER_VERTEX_DATA,
                 0
             },
             {
-                "COLOR",
+                "NORMAL",
                 0,
-                DXGI_FORMAT_R8G8B8A8_UNORM,
+                DXGI_FORMAT_R32G32B32_FLOAT,
                 0,
-                offsetof(Vertex, rgba.r),
-                D3D11_INPUT_PER_VERTEX_DATA,
-                0
-            },
-            {
-                "SIZE",
-                0,
-                DXGI_FORMAT_R16G16_UNORM,
-                0,
-                offsetof(Vertex, size[0]),
-                D3D11_INPUT_PER_VERTEX_DATA,
-                0
-            },
-            {
-                "RADIUS",
-                0,
-                DXGI_FORMAT_R8_UNORM,
-                0,
-                offsetof(Vertex, radius),
+                offsetof(Vertex, norm.x),
                 D3D11_INPUT_PER_VERTEX_DATA,
                 0
             },
@@ -409,22 +404,17 @@ static HRESULT render_create(HWND wnd) {
         LOG_AND_RETURN_ERROR(hr, "ID3D11Device::CreatePixelShader failed");
     }
 
-    // vertex buffer
+    // uniform buffer
     {
         D3D11_BUFFER_DESC desc = {
-            .ByteWidth = VERT_BUF_SIZE,
             .Usage = D3D11_USAGE_DYNAMIC,
-            .BindFlags = D3D11_BIND_VERTEX_BUFFER,
+            .ByteWidth = sizeof(UniformBuffer),
+            .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
             .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
         };
 
-        hr = ID3D11Device_CreateBuffer(
-            rcx.device,
-            &desc,
-            NULL,
-            &rcx.vertex_buffer
-        );
-        LOG_AND_RETURN_ERROR(hr, "ID3D11Device::CreateBuffer failed (vertex)");
+        hr = ID3D11Device_CreateBuffer(rcx.device, &desc, NULL, &rcx.uniform_buffer);
+        LOG_AND_RETURN_ERROR(hr, "ID3D11Device::CreateBuffer failed");
     }
 
     // index buffer
@@ -443,6 +433,24 @@ static HRESULT render_create(HWND wnd) {
             &rcx.index_buffer
         );
         LOG_AND_RETURN_ERROR(hr, "ID3D11Device::CreateBuffer failed (index)");
+    }
+
+    // vertex buffer
+    {
+        D3D11_BUFFER_DESC desc = {
+            .ByteWidth = VERT_BUF_SIZE,
+            .Usage = D3D11_USAGE_DYNAMIC,
+            .BindFlags = D3D11_BIND_VERTEX_BUFFER,
+            .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+        };
+
+        hr = ID3D11Device_CreateBuffer(
+            rcx.device,
+            &desc,
+            NULL,
+            &rcx.vertex_buffer
+        );
+        LOG_AND_RETURN_ERROR(hr, "ID3D11Device::CreateBuffer failed (vertex)");
     }
 
     return S_OK;
@@ -534,7 +542,7 @@ static HRESULT render_resize(HWND wnd, int width, int height) {
         };
 
         D3D_FEATURE_LEVEL feature_level = ID3D11Device_GetFeatureLevel(rcx.device);
-        if ((WINDOW_STENCIL || feature_level < D3D_FEATURE_LEVEL_10_0)
+        if (WINDOW_STENCIL || feature_level < D3D_FEATURE_LEVEL_10_0)
             desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         else
             desc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -606,7 +614,47 @@ static HRESULT render_present(HWND wnd) {
     return S_OK;
 }
 
-// this is where rendering happens
+static D3D11_MAPPED_SUBRESOURCE map_buffer(ID3D11Buffer *buf) {
+    D3D11_MAPPED_SUBRESOURCE mapped_sub_res;
+    HRESULT hr = ID3D11DeviceContext_Map(
+        rcx.context,
+        (ID3D11Resource*)buf,
+        0,
+        D3D11_MAP_WRITE_DISCARD,
+        0,
+        &mapped_sub_res
+    );
+
+    return mapped_sub_res;
+}
+
+/* returns the number of indices to render */
+static uint32_t generate_geometry(void) {
+    D3D11_MAPPED_SUBRESOURCE verts_mapped = map_buffer(rcx.vertex_buffer);
+    D3D11_MAPPED_SUBRESOURCE indxs_mapped = map_buffer(rcx.index_buffer);
+
+    int vi = 0, ii = 0;
+    for (BoxId id = 1; id < MAX_BOXES; id++) if (OCCUPIED(boxes[id])) {
+        Vec3 pos = box_pos_to_vec3(boxes[id].pos);
+
+        for (int local_i = 0; local_i < _countof(cube_vertices); local_i++)
+            ((uint32_t*)indxs_mapped.pData)[ii++] = vi + local_i;
+
+        for (int start_i = vi; (vi - start_i) < _countof(cube_vertices); vi++) {
+            #define BASE_VERT (cube_vertices[vi - start_i])
+            Vertex *vertex = (Vertex*)verts_mapped.pData + vi;
+            *vertex = (Vertex) {
+                .pos = add3(BASE_VERT.pos, pos),
+                .norm = BASE_VERT.norm,
+            };
+        }
+    }
+
+    ID3D11DeviceContext_Unmap(rcx.context, (ID3D11Resource*)rcx.vertex_buffer, 0);
+    ID3D11DeviceContext_Unmap(rcx.context, (ID3D11Resource*)rcx.index_buffer, 0);
+    return ii;
+}
+
 static void render_frame() {
     if (rcx.occluded) return;
 
@@ -641,86 +689,33 @@ static void render_frame() {
 #endif
 
     // clear background
-    FLOAT clear_color[] = {
-        colors[Color_Blue].r / 255.0f,
-        colors[Color_Blue].g / 255.0f,
-        colors[Color_Blue].b / 255.0f,
-        colors[Color_Blue].a / 255.0f
-    };
+    FLOAT clear_color[] = { 100.f/255.f, 149.f/255.f, 237.f/255.f, 1.f };
     ID3D11DeviceContext_ClearRenderTargetView(
         rcx.context,
         rcx.window_rtview,
         clear_color
     );
 
-    // fill vertex buffer
-    D3D11_MAPPED_SUBRESOURCE verts_mapped;
-    D3D11_MAPPED_SUBRESOURCE indices_mapped;
-    HRESULT hr = ID3D11DeviceContext_Map(
-        rcx.context,
-        (ID3D11Resource*)rcx.vertex_buffer,
-        0,
-        D3D11_MAP_WRITE_DISCARD,
-        0,
-        &verts_mapped
-    );
-    hr = ID3D11DeviceContext_Map(
-        rcx.context,
-        (ID3D11Resource*)rcx.index_buffer,
-        0,
-        D3D11_MAP_WRITE_DISCARD,
-        0,
-        &indices_mapped
-    );
+    D3D11_MAPPED_SUBRESOURCE uniform_mapped = map_buffer(rcx.uniform_buffer);
 
-    #if USE_DEBUG_MODE
-    if (FAILED(hr))
-        OutputDebugStringA("Couldn't map vertex/index array");
-    #endif
+    /* Get a pointer to the data in the constant buffer. */
+    UniformBuffer *uniform_ptr = (UniformBuffer*)uniform_mapped.pData;
+    /* Copy the data into the constant buffer. */
+    Vec2 ss = state.screen_size;
+    Mat4 proj = perspective4x4(PI_f * 0.25f, ss.x/ss.y, 0.01f, 100.0f);
+    Vec3 pp = state.player_pos;
+    Mat4 view = look_at4x4(pp, add3(pp, cam_facing()), vec3_y);
+    Mat4 m = mul4x4(proj, view);
+    // m = mul4x4(m, translate4x4((Vec3) { 0.0f, -1.0f, 0.0f }));
+    // m = mul4x4(m, rotate4x4(vec3_x, state.rot));
+    // m = mul4x4(m, rotate4x4(vec3_y, state.rot));
+    // m = mul4x4(m, rotate4x4(vec3_z, state.rot));
+    uniform_ptr->view_proj = transpose4x4(m);
 
-    /* indices: 0, 1, 2, 1, 3, 2 */
-    const Vertex square[] = {
-        { {-0.5f,  0.5f} },
-        { { 0.5f,  0.5f} },
-        { {-0.5f, -0.5f} },
-        { { 0.5f, -0.5f} },
-    };
+    ID3D11DeviceContext_Unmap(rcx.context, (ID3D11Resource*)rcx.uniform_buffer, 0);
+    ID3D11DeviceContext_VSSetConstantBuffers(rcx.context, 0, 1, &rcx.uniform_buffer);
 
-    /* pixels per unit */
-    #define WORLD_SCALE (30.0f)
-    Vec2 ss = div2_f(state.screen_size, 2.0f * WORLD_SCALE);
-    Mat3 cam = ortho3x3(-ss.x, ss.x, -ss.y, ss.y);
-
-    int vi = 0, ii = 0;
-    for (Ent *ent = 0; ent = ent_all_iter(ent); ) {
-        ((uint32_t*)indices_mapped.pData)[ii++] = vi + 0;
-        ((uint32_t*)indices_mapped.pData)[ii++] = vi + 1;
-        ((uint32_t*)indices_mapped.pData)[ii++] = vi + 2;
-        ((uint32_t*)indices_mapped.pData)[ii++] = vi + 1;
-        ((uint32_t*)indices_mapped.pData)[ii++] = vi + 3;
-        ((uint32_t*)indices_mapped.pData)[ii++] = vi + 2;
-
-        Mat3 m = cam;
-        m = mul3x3(m, translate3x3(ent->pos));
-        m = mul3x3(m, rotate3x3(ent->rot));
-        m = mul3x3(m, scale3x3(ent->scale));
-        for (int start_i = vi; (vi - start_i) < 4; vi++) {
-            Vec3 p = {0.0f, 0.0f, 1.0f};
-            p.xy = square[vi - start_i].pos;
-
-            Vertex *vertex = &((Vertex*)verts_mapped.pData)[vi];
-            *vertex = (Vertex) {
-                .pos = mul3x33(m, p).xy,
-                .rgba = ent->rgba,
-                .radius = ent->corner_radii.nums[vi - start_i],
-                .size[0] = (uint16_t) (WORLD_SCALE * ent->scale.x),
-                .size[1] = (uint16_t) (WORLD_SCALE * ent->scale.y),
-            };
-        }
-    }
-
-    ID3D11DeviceContext_Unmap(rcx.context, (ID3D11Resource*)rcx.index_buffer, 0);
-    ID3D11DeviceContext_Unmap(rcx.context, (ID3D11Resource*)rcx.vertex_buffer, 0);
+    uint32_t index_count = generate_geometry();
 
     // draw a triangle
     const UINT stride = sizeof(Vertex);
@@ -752,6 +747,5 @@ static void render_frame() {
         NULL,
         ~0U
     );
-    ID3D11DeviceContext_DrawIndexed(rcx.context, ii, 0, 0);
+    ID3D11DeviceContext_DrawIndexed(rcx.context, index_count, 0, 0);
 }
-

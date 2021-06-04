@@ -1,0 +1,7 @@
+LIBRARY msvcrt.dll
+EXPORTS
+    sinf
+    cosf
+    fmodf
+    sqrtf
+    atan2f
