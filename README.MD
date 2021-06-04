@@ -7,7 +7,7 @@ You can walk around, placing and destroying blocks.
 ### build.bat
 This is the entry-point of the application; run it to get something you can play.
 
-It converts the games source into an executable, dumping the resulting files into a "build" folder in the current directory. It builds the shaders, compiles a trimmed down version of microsoft's C runtime, and runs an compression pass on the resulting executable using [upx](upx.github.io).
+It converts the games source into an executable, dumping the resulting files into a "build" folder in the current directory. It builds the shaders, compiles a trimmed down version of microsoft's C runtime, and runs a compression pass on the resulting executable using [upx](upx.github.io).
 
 There are two sets of compiler flags in use, you can select which set you want to use by configuring this variable:
 ```bat
@@ -18,13 +18,15 @@ If `smol` is set to `yes`, much more aggressive compilation flags are used, and 
 
 If you don't have the UPX executable, just use `smol=no`, and the compression pass will be skipped. This is often desirable, because it's slow as hell.
 
-A potential point of failure here is if the script cannot find `vcvars64.bat`, more popularly invoked as `vcvarsall` (which may in turn call the 64 bit version). This bat script is needed to put essential Microsoft dev tools (like the shader compiler, C/C++ compiler, etc.) into scope so that our build script can use them. Unfortunately, `vcvars64.bat` is often in different locations depending on the version of Windows you are using. If the script is unable to find it on your machine, poke around the internet and your file system and try to find the exact path. We'll update the `.bat` script so that it uses it as another place to look.
+A potential point of failure here is if the script cannot find `vcvars64.bat`, more popularly invoked as `vcvarsall.bat` (which may in turn call the 64 bit version). This bat script is needed to put essential Microsoft dev tools (like the shader compiler, C/C++ compiler, etc.) into scope so that our build script can use them. Unfortunately, `vcvars64.bat` is often in different locations depending on the version of Windows you are using. If the script is unable to find it on your machine, poke around the internet and your file system and try to find the exact path. We'll update the `.bat` script so that it uses it as another place to look.
 
 
 ### main.c
 The second "entry point" of the application, this file is used to house all of the global state -- in a `static` struct named `state` -- as well as manage the window creation and handle input using the typical win32 "window procedure" (aka `winproc`).
 
 I also use this file as temporary housing for "protofiles," things I'm working on but can't quite justify bringing out into their own file just yet. At the time of writing, the player and camera abstractions are two "protofiles" hiding in the top of `main.c`.
+
+Another landmark in main.c is `init_world`, which should create the tree and dirt block the player starts out with, and do other gameplay-oriented initialization.
 
 
 ### render.h
@@ -38,7 +40,7 @@ Voxel geometry is managed as dynamic vertex and index buffers. A function intern
 ### box.h
 This file is filled with abstractions that make dealing with voxels easier.
 
-It has data structures which enumerate the six faces of a cube, the kinds of boxes in the game (aka blocks, but boxes is shorter :P), what data is stored in an individual Box, etc.
+It has data structures which enumerate the six faces of a cube, the kinds of boxes in the game (aka blocks, but boxes is shorter), what data is stored in an individual Box, etc.
 
 It has functions for casting rays against boxes (and finding out which face that ray hit), adding and removing boxes from our box storage data structure, etc.
 
