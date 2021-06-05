@@ -131,8 +131,8 @@ static float box_ray_dist(Vec3 ro, Vec3 rd, Vec3 rad) {
     Vec3 t1 = sub3(mul3_f(n, -1.0f), k);
     Vec3 t2 = add3(mul3_f(n, -1.0f), k);
 
-    float i_near = fmaxf(fmaxf(t1.x, t1.y), t1.z);
-    float i_far  = fminf(fminf(t2.x, t2.y), t2.z);
+    float i_near = max(max(t1.x, t1.y), t1.z);
+    float i_far  = min(min(t2.x, t2.y), t2.z);
 	
     return (i_near > i_far || i_far < 0.0) ? INFINITY : i_near;
 }

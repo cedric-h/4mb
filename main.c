@@ -43,15 +43,18 @@ typedef enum {
     Key_S = 31,
     Key_A = 30,
     Key_D = 32,
+    Key_Space = 57,
 } Key;
 typedef enum { CursorGrab_Free, CursorGrab_Grabbed } CursorGrab;
 static struct {
     CursorGrab cursor_grab;
     Vec2 mouse_pos, screen_size;
-    float rot;
     uint64_t down_keys[512 / 64];
 
-    Vec3 player_pos;
+    struct {
+        Vec3 pos, vel;
+        int8_t jump_cooldown, ground_cooldown;
+    } player;
 
     struct {
         float yaw, pitch;
@@ -84,7 +87,7 @@ static void cam_update() {
     state.cam.turn_vel = mul2_f(state.cam.turn_vel, 0.9f);
     float yaw_d   = state.cam.turn_vel.x,
           pitch_d = state.cam.turn_vel.y; 
-    state.cam.pitch = fclampf(state.cam.pitch + pitch_d, -PI_f * 0.49f, PI_f * 0.49f);
+    state.cam.pitch = clamp(state.cam.pitch + pitch_d, -PI_f * 0.49f, PI_f * 0.49f);
     state.cam.yaw = fmodf(state.cam.yaw + yaw_d, PI_f * 2.0f);
 }
 
@@ -101,31 +104,107 @@ static Vec3 cam_facing() {
     };
 }
 
+static Vec3 player_eye() {
+    return add3(state.player.pos, vec3(0.0f, 1.65f, 0.0f));
+}
+
 static void player_move(Vec2 dir) {
     float mag = mag2(dir);
     Vec2 norm = vec2_rot(rot_vec2(dir) + rot_vec2(cam_going()));
     Vec2 move = mul2_f(norm, mag * 0.07f);
-    state.player_pos = add3(state.player_pos, vec3(move.x, 0.0f, move.y));
+    state.player.pos = add3(state.player.pos, vec3(move.x, 0.0f, move.y));
 }
 
 static void player_interact() {
     Face face = Face_COUNT;
-    BoxId build_onto = box_under_ray(state.player_pos, cam_facing(), &face);
+    BoxId build_onto = box_under_ray(player_eye(), cam_facing(), &face);
     if (face == Face_COUNT || build_onto == BoxId_NULL) return;
     add_box(build_onto, face, BoxKind_Dirt);
 }
 
 static void player_hit() {
-    BoxId target = box_under_ray(state.player_pos, cam_facing(), NULL);
+    BoxId target = box_under_ray(player_eye(), cam_facing(), NULL);
     if (target == BoxId_NULL) return;
     rem_box(target);
+}
+
+float sdf_box3(Vec3 p) {
+    Vec3 d = sub3(abs3(p), vec3_f(0.5f));
+    return mag3(max3_f(d, 0.0f)) + min(max(max(d.x,d.y), d.z), 0.0f);
+}
+
+Vec3 sdf_box_normal3(Vec3 p) {
+    float h = 0.0002f; /* TODO: make sure this is appropriate */
+    Vec2 k = vec2(1,-1);
+    Vec3   q = mul3_f(vec3( 1, -1, -1), sdf_box3(add3(p, mul3_f(vec3( 1, -1, -1), h))));
+    q = add3(q, mul3_f(vec3(-1, -1,  1), sdf_box3(add3(p, mul3_f(vec3(-1, -1,  1), h)))));
+    q = add3(q, mul3_f(vec3(-1,  1, -1), sdf_box3(add3(p, mul3_f(vec3(-1,  1, -1), h)))));
+    q = add3(q, mul3_f(vec3( 1,  1,  1), sdf_box3(add3(p, mul3_f(vec3( 1,  1,  1), h)))));
+    return norm3(q);
+}
+
+/* tests the player's position against all of the boxes, 
+   pushing him out if he intersects with any of them. */
+static void player_physics() {
+    typedef struct { Vec3 pos; BoxId box; float dist; } Nearest;
+    Nearest nearest = { .dist = INFINITY };
+
+    #define plyr state.player
+
+    /* center of the player's collider */
+    Vec3 plrc = plyr.pos;
+    plrc.y += 0.5f;
+
+    for (BoxId id = 1; id < MAX_BOXES; id++)
+        if (OCCUPIED(boxes[id])) {
+            Vec3 pos = box_pos_to_vec3(boxes[id].pos);
+            pos = sub3(plrc, add3_f(pos, 0.5f));
+            float this_dist = sdf_box3(pos);
+            /* but if the distance is less than 0.25f, we've probably placed a block
+               over our head, which probably shouldn't be handled by this code. */
+            if (this_dist < nearest.dist && this_dist > 0.25f)
+                nearest = (Nearest) { pos, id, this_dist };
+        }
+    
+    /* if the distance is less than 0.5f, they're inside of our collider. */
+    int touched_tile = 0;
+    if (nearest.dist < 0.5f) {
+        float depth = fabsf(nearest.dist - 0.5f);
+        Vec3 out = mul3_f(sdf_box_normal3(nearest.pos), depth);
+        plyr.vel = add3(plyr.vel, out);
+
+        if (boxes[nearest.box].pos.y < plyr.pos.y) {
+            plyr.ground_cooldown = min(0, sat_i8(plyr.ground_cooldown - 1));
+            touched_tile = 1;
+        } else {
+            /* ya done bumped ya head, go down faster! */
+            plyr.jump_cooldown = sat_i8(plyr.jump_cooldown + 5);
+        }
+    }
+    if (!touched_tile) 
+        plyr.ground_cooldown = max(0, sat_i8(plyr.ground_cooldown + 1));
+
+    float boost = (float) sat_i8(plyr.ground_cooldown - 10) / 100.0f;
+    plyr.pos.y -= 0.03f + 0.1f * max(0.0f, min(1.0f, boost));
+
+    plyr.jump_cooldown = sat_i8(plyr.jump_cooldown + 1);
+    if (plyr.jump_cooldown < 50)
+        plyr.vel.y += 0.08f * (1.0f - (plyr.jump_cooldown / 50.0f));
+
+    plyr.vel = mul3_f(plyr.vel, 0.65f);
+    plyr.pos = add3(plyr.pos, plyr.vel);
+}
+
+static void player_try_jump() {
+    if (state.player.ground_cooldown < -15)
+        state.player.jump_cooldown = 0;
 }
 
 static void init_world() {
     #define ORIGIN 1
     boxes[ORIGIN] = (Box) {
         .kind = BoxKind_Dirt,
-        .pos.y = -2,
+        .pos.y = -1,
     };
     add_box(ORIGIN, Face_Left, BoxKind_Dirt);
     add_box(ORIGIN, Face_Right, BoxKind_Dirt);
@@ -373,6 +452,9 @@ int WINAPI WinMainCRTStartup(void) {
                         }
                     } else ltrigger_held = 0;
                 }
+
+                if (state.rgbButtons[0])
+                    player_try_jump();
             }
         }
 #endif
@@ -385,8 +467,12 @@ int WINAPI WinMainCRTStartup(void) {
         if (magmag2(move) > 0.0f)
             player_move(norm2(move));
 
-        state.rot += 0.01f;
+        if (key_down(Key_Space))
+            player_try_jump();
+
         cam_update();
+        player_physics();
+
         render_frame();
 
         if (FAILED(render_present(wnd)))

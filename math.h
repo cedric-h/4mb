@@ -1,6 +1,8 @@
-#define fminf(a, b)            ((a) < (b) ? (a) : (b))
-#define fmaxf(a, b)            ((a) > (b) ? (a) : (b))
-#define fclampf(x, a, b)       fminf(b, fmaxf(a, x))
+#define m_min(a, b)            ((a) < (b) ? (a) : (b))
+#define m_max(a, b)            ((a) > (b) ? (a) : (b))
+#define clamp(x, a, b)         m_min(b, m_max(a, x))
+
+#define sat_i8(x) (int8_t) clamp((x), -128, 127)
 
 #define PI_f (3.14159265359f)
 
@@ -147,7 +149,7 @@ static Vec3 sign3(Vec3 v) {
 }
 
 static Vec3 max3_f(Vec3 v, float f) {
-    return vec3(fmaxf(v.x, f), fmaxf(v.y, f), fmaxf(v.z, f));
+    return vec3(m_max(v.x, f), m_max(v.y, f), m_max(v.z, f));
 }
 static Vec3 yzx3(Vec3 v) { return vec3(v.y, v.z, v.x); }
 static Vec3 zxy3(Vec3 v) { return vec3(v.z, v.x, v.y); }

@@ -44,6 +44,8 @@ It has data structures which enumerate the six faces of a cube, the kinds of box
 
 It has functions for casting rays against boxes (and finding out which face that ray hit), adding and removing boxes from our box storage data structure, etc.
 
+In the game's coordinate system, the actual position of a voxel defines its minimum point on each axis, meaning that the voxel at (-1, -1, -1) will occupy the space until (0, 0, 0), which is the maximum point of that voxel. If you put a voxel at (0, 0, 0), it will occupy space until (1, 1, 1), and so on.
+
 The game makes a marked departure from Minecraft in the way that boxes are stored. Minecraft uses dense chunks of boxes. An individual box does not know its neighbors or its position, but it can deduce them by looking at its index within its chunk and its chunks index in the world. Empty blocks are simply assigned a VOID type. This works well in the context of Minecraft because there are relatively few empty blocks, so relatively little memory is wasted storing empty blocks.
 
 However, I would like to have a game comprised of floating islands made of voxels. These islands are suspended in space, each one has its own grid of voxels, and can rotate independently of the grid of any other island. Each island *could* have its own set of chunks in the way of minecraft, but the islands are shallow compared to Minecraft's deep worlds. Plenty of space would be wasted on empty voxels if we imitated Minecraft's deep chunk storage.

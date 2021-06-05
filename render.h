@@ -703,8 +703,8 @@ static void render_frame() {
     /* Copy the data into the constant buffer. */
     Vec2 ss = state.screen_size;
     Mat4 proj = perspective4x4(PI_f * 0.25f, ss.x/ss.y, 0.01f, 100.0f);
-    Vec3 pp = state.player_pos;
-    Mat4 view = look_at4x4(pp, add3(pp, cam_facing()), vec3_y);
+    Vec3 eye = player_eye();
+    Mat4 view = look_at4x4(eye, add3(eye, cam_facing()), vec3_y);
     Mat4 m = mul4x4(proj, view);
     // m = mul4x4(m, translate4x4((Vec3) { 0.0f, -1.0f, 0.0f }));
     // m = mul4x4(m, rotate4x4(vec3_x, state.rot));
