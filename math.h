@@ -157,6 +157,10 @@ static Vec3 step3(Vec3 a, Vec3 b) {
     return vec3(step(a.x, b.x), step(a.y, b.y), step(a.z, b.z));
 }
 
+static Vec3 lerp3(Vec3 a, Vec3 b, float t) {
+    return add3(mul3_f(a, 1.0f - t), mul3_f(b, t));
+}
+
 static float dot3(Vec3 a, Vec3 b) {
     return a.x*b.x + a.y*b.y + a.z*b.z;
 }

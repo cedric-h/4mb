@@ -111,8 +111,8 @@ static Vec3 player_eye() {
 static void player_move(Vec2 dir) {
     float mag = mag2(dir);
     Vec2 norm = vec2_rot(rot_vec2(dir) + rot_vec2(cam_going()));
-    Vec2 move = mul2_f(norm, mag * 0.07f);
-    state.player.pos = add3(state.player.pos, vec3(move.x, 0.0f, move.y));
+    Vec2 move = mul2_f(norm, mag * 0.03f);
+    state.player.vel = add3(state.player.vel, vec3(move.x, 0.0f, move.y));
 }
 
 static void player_interact() {
@@ -152,8 +152,9 @@ static void player_physics() {
     #define plyr state.player
 
     /* center of the player's collider */
+    #define PLAYER_COLLIDER_SIZE (0.4f)
     Vec3 plrc = plyr.pos;
-    plrc.y += 0.5f;
+    plrc.y += PLAYER_COLLIDER_SIZE;
 
     for (BoxId id = 1; id < MAX_BOXES; id++)
         if (OCCUPIED(boxes[id])) {
@@ -168,9 +169,9 @@ static void player_physics() {
     
     /* if the distance is less than 0.5f, they're inside of our collider. */
     int touched_tile = 0;
-    if (nearest.dist < 0.5f) {
-        float depth = fabsf(nearest.dist - 0.5f);
-        Vec3 out = mul3_f(sdf_box_normal3(nearest.pos), depth);
+    if (nearest.dist < PLAYER_COLLIDER_SIZE) {
+        float depth = fabsf(nearest.dist - PLAYER_COLLIDER_SIZE);
+        Vec3 out = mul3_f(sdf_box_normal3(nearest.pos), depth * 0.65f);
         plyr.vel = add3(plyr.vel, out);
 
         if (boxes[nearest.box].pos.y < plyr.pos.y) {
@@ -189,7 +190,7 @@ static void player_physics() {
 
     plyr.jump_cooldown = sat_i8(plyr.jump_cooldown + 1);
     if (plyr.jump_cooldown < 50)
-        plyr.vel.y += 0.08f * (1.0f - (plyr.jump_cooldown / 50.0f));
+        plyr.vel.y += 0.0675f * (1.0f - (plyr.jump_cooldown / 50.0f));
 
     plyr.vel = mul3_f(plyr.vel, 0.65f);
     plyr.pos = add3(plyr.pos, plyr.vel);
@@ -201,6 +202,11 @@ static void player_try_jump() {
 }
 
 static void init_world() {
+    /* moved somewhere and pulled these values out of debugger */
+    state.player.pos = vec3(0.1f, -0.01f, 0.09f);
+    state.cam.yaw = 0.818;
+    state.cam.pitch = -0.88;
+
     #define ORIGIN 1
     boxes[ORIGIN] = (Box) {
         .kind = BoxKind_Dirt,
