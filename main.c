@@ -215,24 +215,16 @@ static void init_world() {
     };
     add_box(ORIGIN, Face_Left, BoxKind_Dirt);
     add_box(ORIGIN, Face_Right, BoxKind_Dirt);
-
-    add_box(3, Face_Right, BoxKind_Dirt);
-    add_box(4, Face_Right, BoxKind_Dirt);
-    add_box(5, Face_Right, BoxKind_Dirt);
-    add_box(6, Face_Right, BoxKind_Dirt);
-    add_box(7, Face_Right, BoxKind_Dirt);
-    add_box(8, Face_Right, BoxKind_Dirt);
-
-    add_box(9, Face_Back, BoxKind_Dirt);
-    add_box(10, Face_Back, BoxKind_Dirt);
-    add_box(11, Face_Back, BoxKind_Dirt);
-    add_box(12, Face_Back, BoxKind_Dirt);
-    add_box(13, Face_Back, BoxKind_Dirt);
-
     add_box(ORIGIN, Face_Front, BoxKind_Dirt);
-    add_box(ORIGIN, Face_Back, BoxKind_Dirt);
+    BoxId last_box = add_box(ORIGIN, Face_Back, BoxKind_Dirt);
 
-    add_tree(-4, -1, -4);
+    boxes[last_box + 1] = (Box) {
+        .kind = BoxKind_Dirt,
+        .pos.x = -4,
+        .pos.y = -1,
+        .pos.z = -4
+    };    
+    treegen_recursive(last_box + 1, 1);
 }
 
 

@@ -1,21 +1,18 @@
-static void add_tree(int16_t x, int16_t y, int16_t z) {
-    int16_t i = 17;
+static void treegen_recursive(BoxId box, int n) {
+    if (n < 0) return;
 
-    boxes[i] = (Box) {
-        .kind = BoxKind_Dirt,
-        .pos.x = x,
-        .pos.y = y,
-        .pos.z = z,
-    };
-    
-    // LOG
-    add_box(i, Face_Above, BoxKind_Dirt);
-    add_box(i+1, Face_Above, BoxKind_Dirt);
+    BoxId left = add_box(box, Face_Left, BoxKind_Dirt);
+    treegen_recursive(left, n - 1);
 
-    // LEAVES
-    add_box(i+2, Face_Left, BoxKind_Dirt);
-    add_box(i+2, Face_Right, BoxKind_Dirt);
-    add_box(i+2, Face_Front, BoxKind_Dirt);
-    add_box(i+2, Face_Back, BoxKind_Dirt);
-    add_box(i+2, Face_Above, BoxKind_Dirt);
+    BoxId right = add_box(box, Face_Right, BoxKind_Dirt);
+    treegen_recursive(right, n - 1);
+
+    BoxId front = add_box(box, Face_Front, BoxKind_Dirt);
+    treegen_recursive(front, n - 1);
+
+    BoxId back = add_box(box, Face_Back, BoxKind_Dirt);
+    treegen_recursive(back, n - 1);
+
+    BoxId above = add_box(box, Face_Above, BoxKind_Dirt);
+    treegen_recursive(above, n - 1);
 }
