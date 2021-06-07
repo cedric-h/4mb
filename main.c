@@ -144,6 +144,10 @@ Vec3 sdf_box_normal3(Vec3 p) {
     return norm3(q);
 }
 
+float sphere_sdf3(Vec3 p, float r) {
+    return mag3(p) - r;
+}
+
 /* tests the player's position against all of the boxes, 
    pushing him out if he intersects with any of them. */
 static void player_physics() {
@@ -216,15 +220,17 @@ static void init_world() {
     add_box(ORIGIN, Face_Left, BoxKind_Dirt);
     add_box(ORIGIN, Face_Right, BoxKind_Dirt);
     add_box(ORIGIN, Face_Front, BoxKind_Dirt);
-    BoxId last_box = add_box(ORIGIN, Face_Back, BoxKind_Dirt);
 
+    BoxId last_box = add_box(ORIGIN, Face_Back, BoxKind_Dirt);
     boxes[last_box + 1] = (Box) {
         .kind = BoxKind_Dirt,
-        .pos.x = -4,
-        .pos.y = -1,
-        .pos.z = -4
+        .pos.x = -7,
+        .pos.y = 3,
+        .pos.z = -7
     };    
-    treegen_recursive(last_box + 1, 1);
+
+    Vec3 box_pos = box_pos_to_vec3(boxes[last_box + 1].pos);
+    treegen_recursive(last_box + 1, 3, box_pos);
 }
 
 
