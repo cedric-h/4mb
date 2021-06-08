@@ -2,7 +2,7 @@ static void treegen_recursive(BoxId box, int n, Vec3 center) {
     if (n < 0) return;
 
     Vec3 box_pos = box_pos_to_vec3(boxes[box].pos);    
-    if (sphere_sdf3(sub3(box_pos, center), 5.0f) < 0.0f) return;
+    if (sdf_sphere3(sub3(box_pos, center), 2.0f) > 0.0f) return;
 
     BoxId left = add_box(box, Face_Left, BoxKind_Dirt);
     treegen_recursive(left, n - 1, center);
@@ -18,7 +18,4 @@ static void treegen_recursive(BoxId box, int n, Vec3 center) {
 
     BoxId above = add_box(box, Face_Above, BoxKind_Dirt);
     treegen_recursive(above, n - 1, center);
-
-    BoxId below = add_box(box, Face_Below, BoxKind_Dirt);
-    treegen_recursive(below, n - 1, center);
 }

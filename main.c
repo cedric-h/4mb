@@ -144,7 +144,7 @@ Vec3 sdf_box_normal3(Vec3 p) {
     return norm3(q);
 }
 
-float sphere_sdf3(Vec3 p, float r) {
+float sdf_sphere3(Vec3 p, float r) {
     return mag3(p) - r;
 }
 
@@ -208,14 +208,15 @@ static void player_try_jump() {
 
 static void init_world() {
     /* moved somewhere and pulled these values out of debugger */
-    state.player.pos = vec3(0.1f, -0.01f, 0.09f);
+    state.player.pos = vec3(-9.5f, 2.0f, -9.5f);
     state.cam.yaw = 0.818;
     state.cam.pitch = -0.88;
 
     #define ORIGIN 1
     boxes[ORIGIN] = (Box) {
         .kind = BoxKind_Dirt,
-        .pos.y = -1,
+        .pos.x = -10.0f,
+        .pos.z = -10.0f,
     };
     add_box(ORIGIN, Face_Left, BoxKind_Dirt);
     add_box(ORIGIN, Face_Right, BoxKind_Dirt);
@@ -223,14 +224,11 @@ static void init_world() {
 
     BoxId last_box = add_box(ORIGIN, Face_Back, BoxKind_Dirt);
     boxes[last_box + 1] = (Box) {
-        .kind = BoxKind_Dirt,
-        .pos.x = -7,
-        .pos.y = 3,
-        .pos.z = -7
+        .kind = BoxKind_Dirt
     };    
 
     Vec3 box_pos = box_pos_to_vec3(boxes[last_box + 1].pos);
-    treegen_recursive(last_box + 1, 3, box_pos);
+    treegen_recursive(last_box + 1, 10, box_pos);
 }
 
 
