@@ -13,7 +13,12 @@ static int eq_bp(BoxPos a, BoxPos b) {
            a.z == b.z;
 }
 
-typedef enum { BoxKind_Unoccupied, BoxKind_Dirt } BoxKind;
+typedef enum {
+    BoxKind_Unoccupied,
+    BoxKind_Dirt,
+    BoxKind_Leaves,
+    BoxKind_Log,
+} BoxKind;
 #define OCCUPIED(box) ((box).kind != BoxKind_Unoccupied)
 
 typedef enum {

@@ -2,3 +2,5 @@ build/*
 *shader.h
 *.swp
 *.rdbg
+
+.vscode/*
